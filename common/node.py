@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-__author__ = 'Peter Howe'
+__author__ = 'Peter_Howe<haobibo@gmail.com>'
 
 import json
 
-from utils import *
-from bottle import *
-from weibo import _http_post,_http_get,_parse_json
+from common.utils import *
+from common.bottle import *
+from common.weibo import _http_post,_http_get,_parse_json
 
 class Node(Bottle):
     def __init__(self,NodeType='slave',port=8888):
@@ -42,6 +42,7 @@ class Node(Bottle):
     def run(self, **kwargs):
         host = self.nodeInfo['IPLocal']
         super(Node,self).run(host=host, port=self.port)
+        return '%s:%d' % (host, self.port)
 
 if __name__=="__main__":
     n = Node()

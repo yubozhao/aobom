@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-__author__ = 'Peter Howe'
+__author__ = 'Peter_Howe<haobibo@gmail.com>'
 
 from ssl import SSLError
-from weibo import APIError
 from urllib2 import URLError
+
+from common.weibo import APIError
+
 
 #reference http://open.weibo.com/wiki/Help/error
 

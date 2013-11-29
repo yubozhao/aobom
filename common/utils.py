@@ -1,4 +1,5 @@
-__author__ = 'Peter Howe'
+# -*- coding: utf-8 -*-
+__author__ = 'Peter_Howe<haobibo@gmail.com>'
 
 import threading
 import urllib2
@@ -9,6 +10,8 @@ import uuid
 import io
 import re
 import os
+
+from config import get_remote_ip_addr
 
 def readHTTPBody(obj, decodeType=None):
     using_gzip = obj.headers.get('Content-Encoding', '') == 'gzip'
@@ -37,7 +40,7 @@ def touchDir(path):
         os.mkdir(path)
 
 def getTokenInfo(tks):
-    from weibo import _http_post as post
+    from common.weibo import _http_post as post
     from datetime import datetime
     import time
     tokens = []
@@ -49,11 +52,11 @@ def getTokenInfo(tks):
         t = post('https://api.weibo.com/oauth2/get_token_info',access_token=tk)
         createdAt = toTime( int (t['create_at']) )
         expireAt = toTime( int(time.time()) + int(t['expire_in']) )
-        tokens.append((t['uid'],createdAt,expireAt,tk,))
+        tokens.append((t['uid'],createdAt,expireAt,tk))
     return tokens
 
 class Util:
-    getIpAddr = "http://www.ip.cn/getip.php?action=getip"
+    getIpAddr = get_remote_ip_addr
 
     def __init__(self):
         pass

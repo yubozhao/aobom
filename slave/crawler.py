@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
-__author__ = 'Peter Howe'
+__author__ = 'Peter_Howe<haobibo@gmail.com>'
+
+from common import weibo
 
 import time
 import random
 import json
 import threading
+from threading import Lock
 
-import  weibo
-
-from scheduler import *
 from error import *
-
-APP_KEY = 'YOUR_APP_KEY'            # app key
-APP_SECRET = 'YOUR_APP_SECRET'      # app secret
-CALLBACK_URL = 'YOUR_CALLBACK_URL'  # callback url
+from scheduler.task import TaskScheduler
+from config import weibo_cfg
 
 class Crawler(threading.Thread, WeiboError):
     taskScheduler = TaskScheduler()
@@ -23,7 +21,7 @@ class Crawler(threading.Thread, WeiboError):
     def __init__(self, token, sleepSpan = -1, taskName='default'):
         Crawler.sleepSpan = sleepSpan
 
-        self.client = weibo.APIClient(app_key=APP_KEY, app_secret=APP_SECRET, redirect_uri=CALLBACK_URL)
+        self.client = weibo.APIClient(app_key=weibo_cfg['APP_KEY'], app_secret=weibo_cfg['APP_SECRET'], redirect_uri=weibo_cfg['CALLBACK_URL'])
         self.token = self.client.access_token = token
         self.nDone = 0
         self.exiting = False
@@ -92,9 +90,13 @@ class Crawler(threading.Thread, WeiboError):
                 r = self.taskHandler(client=self.client, task=t)
 
                 #storage the data using given storage handler
-                self.storageHandler(data=r,task=t)
-                Crawler.taskScheduler.finishTasks([t[0]], TaskMode = self.TaskMode)
-                self.nDone += 1
+                #storage handler returns ids finished storage, these ids can be marked as 'done'
+                finishedIds = self.storageHandler(data=r,task=t)
+
+                if finishedIds is not None and len(finishedIds)>0:
+                    #mark finished as 'done'
+                    Crawler.taskScheduler.finishTasks(finishedIds, TaskMode = self.TaskMode)
+                    self.nDone += len(finishedIds)
 
             except Exception as e:
                 i = self.handleError( e )

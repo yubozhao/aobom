@@ -1,31 +1,30 @@
 # -*- coding: utf-8 -*-
-
-__author__ = 'Peter Howe'
+__author__ = 'Peter_Howe<haobibo@gmail.com>'
 
 import json
-import task
 
-from bottle import request
-
-from node import Node
-from scheduler import *
+from common.bottle import request
+from common.node import Node
+from common.utils import *
+from common.db_common import DbTool
+from scheduler.task import TaskScheduler
+from scheduler.token import TokenScheduler
+from task.tasks import *
 from crawler import *
-
-from utils import *
-from db import DbTool
+from config import *
 
 class Slave(Node):
     masterURL = None
     tokens = []
     threads = {}
     readyToStop = False
-    hearBeatSpan = 10
+    hearBeatSpan = HeartBeatSpan
 
     def __init__(self,master,port):
         super(Slave,self).__init__(NodeType='slave',port=port)
-        Slave.masterURL = master
+        Slave.masterURL = 'http://%s' % master
 
-        for tsk in task.taskPool:
+        for tsk in taskPool():
             TaskScheduler().ensureTaskMode(tsk.getName())
             TaskScheduler().recoverTask(tsk.getName())
 
@@ -45,7 +44,7 @@ class Slave(Node):
 
             info['nTotal'] = nTotal
             info['stat'] ={}
-            for cr in task.taskPool:
+            for cr in taskPool():
                 n = cr.getName()
                 info['stat'][n] = Crawler.taskScheduler.stastic(TaskMode=n)
             str = json.dumps(info, sort_keys=True, indent=4)
@@ -60,7 +59,7 @@ class Slave(Node):
         @self.route('/exit')
         def exit():
             import os
-            DbUtil().shutdown()
+            DbTool().shutdown()
             os._exit(self.nodeInfo['Port'])
 
         @self.route('/token/roger',method='POST')
@@ -95,26 +94,27 @@ class Slave(Node):
     def start(self):
         tokenS = TokenScheduler()
 
-        clusterMode = not Slave.masterURL in [None,'']
+        clusterMode = Mode == 'slave'
         url = self.masterURL + '/echo' if clusterMode else ''
 
         heartBeats = 0
         while not Slave.readyToStop:
-            #every 2 heartbeat, update info to master
-            if clusterMode and heartBeats % 2 ==0:
+            #every heartBeat_greetToMaster heartbeats, greet to master
+            if clusterMode and heartBeats % heartBeat_greetToMaster ==0:
                 try:
                     s = self.nodeInfo
                     tks = TokenScheduler().getTokens()
                     s['nTokens'] = len(tks)
 
+                    #greet to server
                     d = self.httpPost(url, s)
-                    if len(d):
-                        self.nodeInfo['Status'] = 'OK'
+                    self.nodeInfo['Status'] = 'OK' if len(d)>0 else 'SERVER_NO_RESPONSE'
+
                 except Exception as d:
                     self.nodeInfo['Status'] = str(d)
 
-            #every 2 heartbeats, update token info
-            if heartBeats % 2 ==0:
+            #every heartBeat_updateToken heartbeats, update token info
+            if heartBeats % heartBeat_updateToken ==0:
                 tokenS.refreshTokenInfo()
                 Slave.tokens = tokenS.getTokens(status=self.nodeInfo['HostName'])
 
@@ -126,7 +126,8 @@ class Slave(Node):
                     Slave.readyToStop = nApplied==0
                 except Exception as e:
                     nApplied = 1 # In order to make the loop continue, otherwise taskWatcher will stop
-                    raise e
+                    self.nodeInfo['Status'] = 'FAIL_TO_APPLY_TASK'
+                    #raise e
 
             self.__notify__()
             time.sleep(Slave.hearBeatSpan)
@@ -134,7 +135,7 @@ class Slave(Node):
             print '.',
 
     def __notify__(self):
-        for tsk in task.taskPool:
+        for tsk in taskPool():
             taskName=tsk.getName()
 
             if taskName not in self.threads:
@@ -165,11 +166,9 @@ class Slave(Node):
                     self.threads[taskName].pop(tk,None)
 
 
-def runSlave(masterURL='',port=8888):
-    DbTool().initilize(dbName=Util().getHostName())
+def runSlave(masterURL='',port=None):
+    port = default_port_slave if port is None else port
+    DbTool('sqlite').initilize(dbName=Util().getHostName())
     s = Slave(masterURL,port=port)
-    s.run()
     s.start()
-
-if __name__=="__main__":
-    runSlave(masterURL='http://192.168.21.74:6666')
+    return s.run()

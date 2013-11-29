@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
-
-__author__ = 'Peter Howe'
+__author__ = 'Peter_Howe<haobibo@gmail.com>'
 
 import json
+import time
 
-from node import Node
-from utils import *
-from bottle import request
+from common.node import Node
+from common.utils import *
+from common.bottle import request
+from common.db_common import DbTool
 
-from scheduler import *
+from scheduler.host import HostScheduler
+from scheduler.token import TokenScheduler
+from scheduler.task import TaskScheduler
+
+from config import *
 
 class Master(Node):
     nodes = {}
@@ -18,7 +23,8 @@ class Master(Node):
 
         @self.route('/stat')
         def stat():
-            return json.dumps(HostScheduler().listHosts(), indent=1)
+            hosts = HostScheduler().listHosts()
+            return json.dumps(hosts, indent=1)
 
         @self.route('/echo',method='POST')
         def echo():
@@ -38,8 +44,8 @@ class Master(Node):
 
             taskMode = None
             tasks = None
-            from task import taskPool
-            for tsk in taskPool:
+            from task.tasks import taskPool
+            for tsk in taskPool():
                 taskMode = tsk.getName()
                 tasks = TaskScheduler().fetchTodoTask(TaskMode=taskMode, mark=m['host'],number=int(m['number']))
                 if len(tasks)>0:
@@ -51,6 +57,9 @@ class Master(Node):
 
 
     def registerSlave(self,hostInfo):
+        #########
+        print('Registering Slave: %s.' % str(hostInfo))
+
         hs = HostScheduler()
         hosts = hs.listHosts()
         #h[4] is MAC of a host
@@ -63,8 +72,14 @@ class Master(Node):
         else:
             hs.updateHost(hostInfo)
             h = int( hostInfo['nTokens'] )
-            tkAlready = ts.getTokens(status=hostInfo['HostName'])
-            tokensNew = TokenScheduler().getTokens(number=TokenScheduler.tokensPerHost - len(tkAlready))
+
+            hostname = hostInfo['HostName']
+            tkAlready = ts.getTokens(status=hostname)
+
+            h = max(h,len(tkAlready))
+            h = max(0, TokenScheduler.tokensPerHost - h)
+            tokensNew = TokenScheduler().getTokens(number=h)
+            print('Giving host[%s] %d tokens: %s.' % (hostname, len(tokensNew), json.dumps(tokensNew) ))
             tokens = []
             tokens.extend(tkAlready)
             tokens.extend(tokensNew)
@@ -79,17 +94,21 @@ class Master(Node):
         sent = self.httpPost(url, data)
         ts = TokenScheduler()
         ts.markTokens(hostInfo['HostName'], [(tk,) for (tk) in sent])
-
         return len(sent)
 
     @async
     def start(self):
-        TokenScheduler().refreshTokenInfo()
+        heartBeats = 0
+        while True:
+            TokenScheduler().refreshTokenInfo()
+            heartBeats += 1
+            print '*',
+            time.sleep(20)
 
-def runMaster(port=6666):
+def runMaster(port=None,dbType=None,db_cfg=None):
+    port = default_port_master if port is None else port
+    if dbType is None: dbType='sqlite'
+    DbTool(dbType=dbType).initilize()
     m = Master(port)
     m.start()
-    m.run()
-
-if __name__=="__main__":
-    runMaster()
+    return m.run()
