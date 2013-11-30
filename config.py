@@ -19,7 +19,7 @@ tasks = ['UserCounts', 'UserProfile', 'UserStatuses']
 mysql_cfg={
     'host':'localhost',
     'user':'root',
-    'password':'wsi_806212',
+    'password':'YOUR_PASSWORD',
     'database':'crawler_master'
 }
 
