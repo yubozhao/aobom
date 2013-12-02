@@ -107,7 +107,7 @@ class Crawler(threading.Thread, WeiboError):
         for uid,status in fail.iteritems():
             Crawler.taskScheduler.markTask(uid, TaskMode = self.TaskMode, status=status)
 
-        self.status = 'stoped'
+        self.status = 'stopped'
 
     def __str__(self):
         dic = {
@@ -115,6 +115,6 @@ class Crawler(threading.Thread, WeiboError):
             'status' : self.status,
             'sleepSpan' : self.sleepSpan,
             'nDone': self.nDone,
-            'nTasks' : len(self.tasks)
+            'nTasks' : len(self.tasks),'Tasks' : self.tasks
         }
         return json.dumps(dic)

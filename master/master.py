@@ -57,9 +57,7 @@ class Master(Node):
 
 
     def registerSlave(self,hostInfo):
-        #########
-        print('Registering Slave: %s.' % str(hostInfo))
-
+        #print('Registering Slave: %s.' % str(hostInfo))
         hs = HostScheduler()
         hosts = hs.listHosts()
         #h[4] is MAC of a host
@@ -79,7 +77,7 @@ class Master(Node):
             h = max(h,len(tkAlready))
             h = max(0, TokenScheduler.tokensPerHost - h)
             tokensNew = TokenScheduler().getTokens(number=h)
-            print('Giving host[%s] %d tokens: %s.' % (hostname, len(tokensNew), json.dumps(tokensNew) ))
+            #print('Giving host[%s] %d tokens: %s.' % (hostname, len(tokensNew), json.dumps(tokensNew) ))
             tokens = []
             tokens.extend(tkAlready)
             tokens.extend(tokensNew)

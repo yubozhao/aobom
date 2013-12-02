@@ -120,9 +120,16 @@ class Slave(Node):
 
             #every heartbeat, update task info
             nTokens = len(Slave.tokens)
-            if clusterMode and sum([len(ths) for ths in Slave.threads.values()])<nTokens:
+            nWorkingThreads = 0
+            for k,v in Slave.threads.iteritems():
+                t = [th for tk,th in v.iteritems() if th.status != 'stopped']
+                nWorkingThreads += len(t)
+
+            if clusterMode and nWorkingThreads<nTokens:
                 try:
-                    nApplied = self.applyTask(TaskScheduler.taskPerTime*nTokens)
+                    nApplied = self.applyTask(TaskScheduler.taskPerTime*nTokens*2)
+                    print('Applied %d Tasks.' % nApplied)
+                    self.nodeInfo['Status'] = 'OK'
                     Slave.readyToStop = nApplied==0
                 except Exception as e:
                     nApplied = 1 # In order to make the loop continue, otherwise taskWatcher will stop
@@ -138,15 +145,15 @@ class Slave(Node):
         for tsk in taskPool():
             taskName=tsk.getName()
 
-            if taskName not in self.threads:
-                self.threads[taskName] = {}
+            if taskName not in Slave.threads:
+                Slave.threads[taskName] = {}
 
             for tk in Slave.tokens:
                 t = tk[0]
-                if t in self.threads[taskName]:
+                if t in Slave.threads[taskName]:
                     continue
 
-                c = Crawler(t,taskName=taskName)
+                c = Crawler(t,taskName=taskName, sleepSpan=0.02)
 
                 c.defInit(tsk.getInitHandler(),TaskMode=taskName)
                 c.defTaskFetcher(tsk.getTaskFetcher())
@@ -157,13 +164,13 @@ class Slave(Node):
                     c.defErrHandler(code,handler)
 
                 c.start()
-                self.threads[taskName][t] = c
+                Slave.threads[taskName][t] = c
 
             currentTokens = [token[0] for token in Slave.tokens]
-            for tk,crawler in self.threads[taskName].items():
+            for tk,crawler in Slave.threads[taskName].items():
                 if tk not in currentTokens:
                     crawler.end()
-                    self.threads[taskName].pop(tk,None)
+                    Slave.threads[taskName].pop(tk,None)
 
 
 def runSlave(masterURL='',port=None):

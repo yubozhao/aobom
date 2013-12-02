@@ -10,7 +10,7 @@ status_len = 16
 
 class TaskScheduler:
     mutex = Lock()
-    taskPerTime = 10
+    taskPerTime = 100
     global DbUtil
 
     def __init__(self):
@@ -24,9 +24,9 @@ class TaskScheduler:
                     `id`           BIGINT UNSIGNED NOT NULL,
                     `rogerTime`    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `finishTime`   TIMESTAMP DEFAULT 0,
-                    `status`       VARCHAR(%d) DEFAULT 'todo',
+                    `status`       VARCHAR(_status_len_) DEFAULT 'todo',
                     PRIMARY KEY (`id` ASC)
-                );''' % status_len #(datetime(CURRENT_TIMESTAMP, 'localtime'))
+                );'''.replace('_status_len_',str(status_len))#(datetime(CURRENT_TIMESTAMP, 'localtime'))
 
             db = DbUtil()
             tables = 'Task_%s' % TaskMode

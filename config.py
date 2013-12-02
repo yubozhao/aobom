@@ -10,7 +10,7 @@ storage_dir = 'Z:/'     #directory to sotrage downloaded data, should be ended w
 dblite_dir = 'C:/Share/'
 
 #strings in the tasks list should be correspondent to the names of TaskClasses defined in package task
-tasks = ['UserCounts', 'UserProfile', 'UserStatuses']
+tasks = ['UserCounts'] # , 'UserProfile', 'UserStatuses'
 
 #configuration to connect to connect to mysql
 #needed only when you want to connect to a mysql server (sqlite doesn't require this)
