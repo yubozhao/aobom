@@ -24,7 +24,7 @@ class TokenScheduler:
 
     def getTokens(self, number=tokensPerHost, status=None):
         with TokenScheduler.mutex:
-            sql_getTokens = "SELECT * FROM token WHERE (expireAt IN (NULL,0) OR expireAt > CURRENT_TIMESTAMP)"
+            sql_getTokens = "SELECT * FROM token WHERE (IFNULL(expireAt,0)=0) OR (expireAt>CURRENT_TIMESTAMP)"
             sql_getTokens += " AND (status IS NULL)" if status is None else " AND (status IS NULL OR status ='%s')" % status
             sql_getTokens += " LIMIT %d" % number
 
