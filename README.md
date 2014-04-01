@@ -1,6 +1,13 @@
 #aobom
 Distributed Sina Weibo Crawler via API ready for TBs of data
 ======
+## 重要提示
+因新浪微博API数据获取政策调整，目前大规模获取微博用户的接口收到限制。
+如果想要大规模获取用户微博数据，您可能需要：
+* 拥有第三方客户端的APP，这样的APP的Token，抓取权限不受影响；
+* 拥有一般APP的高级授权，可以通过batch的接口（需另外申请），最多获取每个用户的200条微博。
+否则目前难于通过API来大规模获取用户微博数据。
+
 
 ## See [English Version Document](https://github.com/haobibo/aobom/wiki/aobom-readme)
 Project aobom, written in python, is a distributed Sina Weibo crawler which download data through Weibo API.
